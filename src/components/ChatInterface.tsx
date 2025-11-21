@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { analyzeSentiment } from '@/utils/sentimentAnalysis';
 import { classifyIntent } from '@/utils/intentClassification';
 import { generateResponse, CyclePhase, ContextData } from '@/utils/contextAwareness';
-import { Brain, Heart, Send, Sparkles } from 'lucide-react';
+import { Brain, Send, ArrowLeft, Mic } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -18,21 +16,31 @@ interface Message {
   intent?: string;
 }
 
-export default function ChatInterface() {
+interface ChatInterfaceProps {
+  onBack: () => void;
+  isPeriodMode: boolean;
+  cyclePhase: CyclePhase;
+}
+
+const quickChips = [
+  'I am stressed',
+  'Cramps are killing me',
+  'I feel lonely',
+  'Exam tomorrow'
+];
+
+export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [isPeriodMode, setIsPeriodMode] = useState(false);
-  const [cyclePhase, setCyclePhase] = useState<CyclePhase>('follicular');
   const [currentThinking, setCurrentThinking] = useState<string[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  const handleSendMessage = async (messageText: string) => {
+    if (!messageText.trim()) return;
 
     const userMessage: Message = {
       role: 'user',
-      content: input
+      content: messageText
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -43,10 +51,10 @@ export default function ChatInterface() {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     // Analyze sentiment
-    const sentiment = analyzeSentiment(input);
+    const sentiment = analyzeSentiment(messageText);
     
     // Classify intent
-    const intent = classifyIntent(input);
+    const intent = classifyIntent(messageText);
     
     // Context data
     const context: ContextData = {
@@ -80,167 +88,157 @@ export default function ChatInterface() {
     setCurrentThinking([]);
   };
 
-  return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-[hsl(25,75%,65%)] bg-clip-text text-transparent">
-              CycleWise AI
-            </h1>
-          </div>
-          <p className="text-muted-foreground">
-            Your empathetic AI companion for menstrual health & wellness
-          </p>
-        </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleSendMessage(input);
+  };
 
-        {/* Context Controls */}
-        <Card className="p-6 space-y-4 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="period-mode" className="text-base font-semibold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Period Mode
-              </Label>
+  const handleChipClick = async (chipText: string) => {
+    setInput(chipText);
+    await handleSendMessage(chipText);
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
+        <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-foreground">Chat with Moyo</h1>
+            <p className="text-xs text-muted-foreground">I'm here to listen, sis</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Chat Messages */}
+      <main className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl mx-auto w-full">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-12">
+            <Brain className="w-16 h-16 text-primary opacity-50" />
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-foreground">
+                Wetin dey worry you today?
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Enable for cycle-specific support
+                Talk to me, sis. I dey here to listen.
               </p>
             </div>
-            <Switch
-              id="period-mode"
-              checked={isPeriodMode}
-              onCheckedChange={setIsPeriodMode}
-            />
           </div>
+        )}
 
-          {isPeriodMode && (
-            <div className="space-y-2 pt-2 border-t">
-              <Label className="text-sm font-medium">Cycle Phase</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {(['menstrual', 'follicular', 'ovulation', 'luteal'] as CyclePhase[]).map(phase => (
-                  <Button
-                    key={phase}
-                    variant={cyclePhase === phase ? 'warm' : 'outline'}
-                    size="sm"
-                    onClick={() => setCyclePhase(phase)}
-                    className="capitalize"
-                  >
-                    {phase}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Chat Messages */}
-        <Card className="min-h-[400px] max-h-[500px] overflow-y-auto p-6 space-y-4 shadow-lg">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-12">
-              <Brain className="w-16 h-16 text-primary opacity-50" />
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-muted-foreground">
-                  How are you feeling today?
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Share your thoughts, concerns, or symptoms. I'm here to help.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {messages.map((message, index) => (
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
             <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`max-w-[85%] rounded-3xl p-4 space-y-2 ${
+                message.role === 'user'
+                  ? 'bg-primary text-white'
+                  : 'bg-card border border-border'
+              }`}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl p-4 space-y-2 ${
-                  message.role === 'user'
-                    ? 'bg-gradient-to-r from-primary to-[hsl(25,75%,65%)] text-white'
-                    : 'bg-card border border-border'
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{message.content}</p>
-                
-                {message.role === 'assistant' && message.thinking && (
-                  <div className="pt-2 mt-2 border-t border-border/50 space-y-1">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                      <Brain className="w-3 h-3" />
-                      Thinking Process:
-                    </div>
-                    {message.thinking.map((thought, i) => (
-                      <p key={i} className="text-xs text-muted-foreground">
-                        {thought}
-                      </p>
-                    ))}
+              <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              
+              {message.role === 'assistant' && message.thinking && (
+                <div className="pt-2 mt-2 border-t border-border/50 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                    <Brain className="w-3 h-3" />
+                    Thinking Process:
                   </div>
-                )}
-
-                {message.sentiment && message.intent && (
-                  <div className="flex gap-2 pt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {message.sentiment}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {message.intent}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {isThinking && (
-            <div className="flex justify-start">
-              <Card className="max-w-[80%] p-4 space-y-2 bg-gradient-to-r from-accent/20 to-accent/10 border-accent/30">
-                <div className="flex items-center gap-2 text-sm font-semibold text-accent">
-                  <Brain className="w-4 h-4 animate-pulse" />
-                  Analyzing your message...
+                  {message.thinking.map((thought, i) => (
+                    <p key={i} className="text-xs text-muted-foreground">
+                      {thought}
+                    </p>
+                  ))}
                 </div>
-                {currentThinking.map((thought, i) => (
-                  <p key={i} className="text-xs text-muted-foreground animate-pulse">
-                    {thought}
-                  </p>
-                ))}
-              </Card>
+              )}
+
+              {message.sentiment && message.intent && (
+                <div className="flex gap-2 pt-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {message.sentiment}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {message.intent}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {isThinking && (
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-3xl p-4 space-y-2 bg-accent/10 border border-accent/30">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Brain className="w-4 h-4 animate-pulse" />
+                Moyo is thinking...
+              </div>
+              {currentThinking.map((thought, i) => (
+                <p key={i} className="text-xs text-muted-foreground animate-pulse">
+                  {thought}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Input Area */}
+      <footer className="sticky bottom-0 bg-card border-t border-border shadow-lg">
+        <div className="max-w-4xl mx-auto p-4 space-y-3">
+          {/* Quick Chips */}
+          {messages.length === 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {quickChips.map((chip, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleChipClick(chip)}
+                  disabled={isThinking}
+                  className="flex-shrink-0 rounded-full"
+                >
+                  {chip}
+                </Button>
+              ))}
             </div>
           )}
-        </Card>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Share how you're feeling..."
-            className="min-h-[100px] resize-none rounded-xl border-border focus:border-primary transition-colors"
-            disabled={isThinking}
-          />
-          <div className="flex justify-end">
+          {/* Input Form */}
+          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1 min-h-[50px] max-h-[120px] resize-none rounded-3xl"
+              disabled={isThinking}
+              rows={1}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              className="flex-shrink-0"
+              disabled={isThinking}
+            >
+              <Mic className="w-5 h-5 text-muted-foreground" />
+            </Button>
             <Button
               type="submit"
-              variant="warm"
-              size="lg"
+              size="icon"
               disabled={isThinking || !input.trim()}
-              className="gap-2"
+              className="flex-shrink-0 bg-primary hover:bg-primary/90 rounded-full"
             >
-              <Send className="w-4 h-4" />
-              Send Message
+              <Send className="w-5 h-5" />
             </Button>
-          </div>
-        </form>
-
-        {/* Info Footer */}
-        <Card className="p-4 bg-muted/50 border-border">
-          <p className="text-xs text-muted-foreground text-center">
-            <strong>AI Demo:</strong> This showcases sentiment analysis, intent classification, and context-aware responses.
-            For actual crises, please contact professional helplines.
-          </p>
-        </Card>
-      </div>
+          </form>
+        </div>
+      </footer>
     </div>
   );
 }
