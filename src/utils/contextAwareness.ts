@@ -31,48 +31,49 @@ export function generateResponse(responseContext: ResponseContext): {
   const { sentiment, intent, context } = responseContext;
   const thinking: string[] = [];
   
-  // Thinking process visualization
+  // Thinking process visualization with Nigerian flavor
   thinking.push(`Analyzing sentiment: ${sentiment.level.toUpperCase()}`);
   thinking.push(`Intent classified as: ${intent}`);
   thinking.push(`Context: ${phaseDescriptions[context.cyclePhase]}`);
   thinking.push(`Period Mode: ${context.isPeriodMode ? 'Active' : 'Inactive'}`);
+  thinking.push('Moyo is preparing response...');
   
-  // CRISIS MODE - Safety protocols
+  // CRISIS MODE - Safety protocols (Nigerian resources)
   if (intent === 'CRISIS' || sentiment.level === 'high-distress') {
     thinking.push('⚠️ CRISIS PROTOCOL ACTIVATED');
     return {
-      response: `I'm really concerned about you. Please reach out for immediate help:\n\n🆘 **Crisis Resources:**\n• National Suicide Prevention Lifeline: 988\n• Crisis Text Line: Text HOME to 741741\n• International: findahelpline.com\n\nYou matter, and there are people who want to help. Please don't face this alone. 💜`,
+      response: `Sis, abeg listen to me. Your life matters pass anything. I dey beg you, please reach out for help now:\n\n🆘 **Emergency Help:**\n• Nigeria Emergency: 112\n• Mental Health Helpline: 0800 9000 0009\n• Crisis Text Line: Text HOME to 741741\n\nYou no dey alone. People wey care about you dey. Please call somebody now. 💜`,
       thinking,
       resources: [
-        'National Suicide Prevention Lifeline: 988',
-        'Crisis Text Line: 741741',
-        'findahelpline.com'
+        'Nigeria Emergency: 112',
+        'Mental Health Helpline: 0800 9000 0009',
+        'Crisis Text Line: 741741'
       ]
     };
   }
   
-  // PHYSICAL INTENT with Context Awareness
+  // PHYSICAL INTENT with Context Awareness (Nigerian style)
   if (intent === 'PHYSICAL') {
     thinking.push('Generating context-aware physical wellness advice...');
     
     if (context.isPeriodMode) {
       return {
-        response: `I hear you - period symptoms can be really tough. Since you're in your ${phaseDescriptions[context.cyclePhase]}, here are some targeted suggestions:\n\n🌡️ **For Cramps & Pain:**\n• Apply a heating pad to your lower abdomen\n• Try gentle yoga or stretching\n• Stay hydrated with warm herbal tea\n\n💊 **Consider:**\n• Ibuprofen (if safe for you)\n• Magnesium supplements\n• Rest when your body needs it\n\n${context.cyclePhase === 'menstrual' ? 'This is the hardest phase - be extra gentle with yourself. 💛' : 'Your body is working hard - prioritize rest and comfort. ✨'}`,
+        response: `Sis, I hear you - period pain no be joke at all. Since na ${phaseDescriptions[context.cyclePhase]} you dey, make I give you some tips:\n\n🌡️ **For Cramps & Pain:**\n• Use hot water bottle for your belle\n• Try small small stretching or yoga\n• Drink warm ginger tea - e dey help well well\n\n💊 **Wetin You Fit Do:**\n• Take Ibuprofen (if e fit you)\n• Try magnesium supplements\n• Rest well, no stress yourself\n\n${context.cyclePhase === 'menstrual' ? 'This na the hardest time, sis. Be gentle with yourself, you hear? 💛' : 'Your body dey work hard. Make you rest and take am easy. ✨'}`,
         thinking
       };
     } else {
       return {
-        response: `I understand you're not feeling well. Let me help with some general wellness tips:\n\n💧 **Self-Care Basics:**\n• Drink plenty of water\n• Ensure you're getting 7-9 hours of sleep\n• Take breaks throughout the day\n\n🌿 **Natural Relief:**\n• Deep breathing exercises\n• Gentle stretching\n• Fresh air and light movement\n\nIf symptoms persist, please consider consulting a healthcare provider. Take care! 🌸`,
+        response: `Sis, I dey feel you. Body pain fit be from wahala or stress. Make I help you:\n\n💧 **Small Small Self-Care:**\n• Drink plenty water (e dey important)\n• Sleep well - at least 7-8 hours\n• Take breaks, no overdo am\n\n🌿 **Natural Ways to Feel Better:**\n• Do small breathing exercise\n• Stretch your body small\n• Go outside, breathe fresh air\n\nIf e still dey pain you after some days, abeg go see doctor. Take care of yourself! 🌸`,
         thinking
       };
     }
   }
   
-  // ACADEMIC INTENT with Empathy
+  // ACADEMIC INTENT with Empathy (Nigerian style)
   if (intent === 'ACADEMIC') {
     thinking.push('Providing academic support with cycle awareness...');
     
-    const academicResponse = `Academic stress is real, and ${context.isPeriodMode ? 'dealing with it during your period makes it even harder' : 'you deserve support through this'}.\n\n📚 **Stress Management:**\n• Break tasks into smaller chunks\n• Use the Pomodoro technique (25 min focus, 5 min break)\n• Practice self-compassion\n\n${context.cyclePhase === 'luteal' ? '⚠️ Note: You\'re in the Luteal Phase - many people find concentration harder now. Be extra kind to yourself!' : ''}\n\n🧠 **Study Tips:**\n• Study in short, focused bursts\n• Prioritize the most important topics\n• Remember: One exam doesn't define you\n\nYou've got this! 💪`;
+    const academicResponse = `School wahala is real, sis. ${context.isPeriodMode ? 'E dey even harder when you dey on your period' : 'But no worry, you fit do am'}.\n\n📚 **How to Manage the Stress:**\n• Break your work into small small parts\n• Study for 25 minutes, rest 5 minutes (Pomodoro)\n• No pressure yourself too much\n\n${context.cyclePhase === 'luteal' ? '⚠️ Note: You dey Luteal Phase - your brain fit dey tire well well. E normal, just take am easy!' : ''}\n\n🧠 **Study Tips:**\n• Read small small, no cram marathon\n• Face the important topics first\n• Remember: One exam no go define who you be\n\nYou go do am, sis! I believe in you! 💪`;
     
     return {
       response: academicResponse,
@@ -80,20 +81,20 @@ export function generateResponse(responseContext: ResponseContext): {
     };
   }
   
-  // EMOTIONAL SUPPORT
+  // EMOTIONAL SUPPORT (Nigerian style)
   if (intent === 'EMOTIONAL' || sentiment.level === 'empathy') {
     thinking.push('Activating empathy mode...');
     
     return {
-      response: `I'm here for you. ${context.isPeriodMode ? 'Emotional ups and downs during your cycle are completely valid.' : 'Your feelings are valid.'}\n\n💜 **What might help:**\n• Talk to someone you trust\n• Journal your thoughts\n• Do something that brings you joy\n• Remember: feelings are temporary\n\n${context.cyclePhase === 'luteal' ? '🌙 You\'re in the Luteal Phase - hormonal changes can intensify emotions. This is biological, not weakness.' : ''}\n\nBe gentle with yourself today. 🌸`,
+      response: `Sis, I dey here for you. ${context.isPeriodMode ? 'Your feelings dey valid - hormones fit cause plenty emotions during your period.' : 'Wetin you dey feel na real thing.'}\n\n💜 **Wetin Fit Help:**\n• Talk to person wey you trust\n• Write how you dey feel for diary\n• Do wetin dey make you happy\n• Remember: This feeling go pass\n\n${context.cyclePhase === 'luteal' ? '🌙 You dey Luteal Phase - hormones fit make your emotions strong well well. E no be weakness, na biology.' : ''}\n\nTake am easy with yourself today, you hear? 🌸`,
       thinking
     };
   }
   
-  // POSITIVE / GENERAL
+  // POSITIVE / GENERAL (Nigerian style)
   thinking.push('Generating supportive response...');
   return {
-    response: `${sentiment.level === 'positive' ? 'I\'m so glad to hear you\'re doing well! 😊' : 'I\'m here to support you.'}\n\nHow can I help you today? I can provide:\n• Period symptom management\n• Academic stress support\n• Emotional wellness tips\n• Cycle-aware self-care advice\n\nFeel free to share what's on your mind. 💛`,
+    response: `${sentiment.level === 'positive' ? 'Ah sis! I dey happy say you dey do well! 😊' : 'Sis, I dey here for you.'}\n\nWetin you need help with today? I fit help with:\n• Period wahala and how to manage am\n• School stress and exam prep\n• Emotional wellness tips\n• Self-care advice based on your cycle\n\nTalk to me, I dey listen. 💛`,
     thinking
   };
 }

@@ -8,95 +8,88 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Warm, empathetic wellness palette */
-    --background: 30 25% 97%;
-    --foreground: 20 15% 25%;
+    /* MoyoCare-Her Afro-Centered theme */
+    --background: 20 100% 97%;  /* Soft Cream/Beige #FFF5F0 */
+    --foreground: 25 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 20 15% 25%;
+    --card-foreground: 25 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 15% 25%;
+    --popover-foreground: 25 30% 15%;
 
-    /* Terracotta primary */
-    --primary: 12 70% 58%;
+    --primary: 20 80% 45%;  /* Deep Terracotta/Burnt Orange #C05621 */
     --primary-foreground: 0 0% 100%;
 
-    /* Soft sage secondary */
-    --secondary: 140 25% 75%;
-    --secondary-foreground: 140 40% 25%;
+    --secondary: 150 50% 35%;  /* Deep Green #2F855A */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 30 20% 92%;
-    --muted-foreground: 20 10% 50%;
+    --muted: 25 20% 90%;
+    --muted-foreground: 25 15% 40%;
 
-    /* Lavender accent */
-    --accent: 260 40% 70%;
-    --accent-foreground: 260 60% 15%;
+    --accent: 330 70% 72%;  /* Soft Pink #F687B3 */
+    --accent-foreground: 330 30% 20%;
 
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 30 15% 88%;
-    --input: 30 15% 90%;
-    --ring: 12 70% 58%;
+    --border: 25 20% 88%;
+    --input: 25 20% 88%;
+    --ring: 20 80% 45%;
 
-    --radius: 1rem;
+    --radius: 1.5rem;  /* 24px rounded corners */
 
-    /* Custom wellness tokens */
-    --gradient-warm: linear-gradient(135deg, hsl(12 70% 58%) 0%, hsl(25 75% 65%) 100%);
-    --gradient-calm: linear-gradient(135deg, hsl(140 25% 75%) 0%, hsl(160 30% 80%) 100%);
-    --gradient-empathy: linear-gradient(135deg, hsl(260 40% 70%) 0%, hsl(280 35% 75%) 100%);
-    
-    --shadow-soft: 0 4px 20px -4px hsl(12 70% 58% / 0.15);
-    --shadow-hover: 0 8px 30px -6px hsl(12 70% 58% / 0.25);
-    
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Custom MoyoCare colors */
+    --gradient-warm: linear-gradient(135deg, hsl(20, 80%, 45%), hsl(20, 75%, 55%));
+    --gradient-nature: linear-gradient(135deg, hsl(150, 50%, 35%), hsl(150, 45%, 45%));
+    --shadow-soft: 0 4px 20px rgba(192, 86, 33, 0.15);
+    --period-mode: 330 70% 72%;  /* Soft Pink for period mode */
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 20 25% 12%;
-    --foreground: 30 15% 90%;
+    --background: 25 30% 8%;
+    --foreground: 25 10% 95%;
 
-    --card: 20 20% 15%;
-    --card-foreground: 30 15% 90%;
+    --card: 25 25% 12%;
+    --card-foreground: 25 10% 95%;
 
-    --popover: 20 20% 15%;
-    --popover-foreground: 30 15% 90%;
+    --popover: 25 25% 10%;
+    --popover-foreground: 25 10% 95%;
 
-    --primary: 12 70% 58%;
+    --primary: 20 80% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 140 20% 30%;
-    --secondary-foreground: 140 25% 85%;
+    --secondary: 150 50% 40%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 20 15% 20%;
-    --muted-foreground: 20 10% 60%;
+    --muted: 25 15% 18%;
+    --muted-foreground: 25 10% 60%;
 
-    --accent: 260 35% 55%;
-    --accent-foreground: 260 20% 95%;
+    --accent: 330 60% 65%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 20 15% 25%;
-    --input: 20 15% 25%;
-    --ring: 12 70% 58%;
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 20 80% 50%;
+
+    /* Custom dark mode colors */
+    --gradient-warm: linear-gradient(135deg, hsl(20, 80%, 50%), hsl(20, 75%, 60%));
+    --gradient-nature: linear-gradient(135deg, hsl(150, 50%, 40%), hsl(150, 45%, 50%));
+    --shadow-soft: 0 4px 20px rgba(192, 86, 33, 0.2);
+    --period-mode: 330 60% 65%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -115,5 +108,16 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
