@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Send, ArrowLeft, Mic, AlertCircle } from 'lucide-react';
+import { Brain, Send, ArrowLeft, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { GROQ_API_KEY_STORAGE } from './SettingsDialog';
 import { CyclePhase } from '@/utils/contextAwareness';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -50,17 +49,6 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
 
-    // Check for API key
-    const apiKey = localStorage.getItem(GROQ_API_KEY_STORAGE);
-    if (!apiKey) {
-      toast({
-        title: 'API Key Required',
-        description: 'Please add your Groq API key in Settings',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     const userMessage: Message = {
       role: 'user',
       content: messageText
@@ -77,30 +65,21 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         contextualMessage += ` [Context: User is currently in ${cyclePhase} phase of menstrual cycle]`;
       }
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-70b-versatile',
+      // Call the secure backend edge function
+      const { data, error } = await supabase.functions.invoke('chat-with-moyo', {
+        body: {
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: contextualMessage }
-          ],
-          temperature: 0.7,
-          max_tokens: 150,
-        }),
+          ]
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || 'Failed to get response from AI');
+      if (error) {
+        throw new Error('Moyo is having trouble connecting right now. Please try again.');
       }
 
-      const data = await response.json();
       const assistantMessage: Message = {
         role: 'assistant',
         content: data.choices[0]?.message?.content || 'I hear you, sis. Tell me more.',
@@ -108,10 +87,10 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Groq API Error:', error);
+      console.error('Chat Error:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to connect to AI',
+        title: 'Connection Error',
+        description: 'Moyo is having trouble connecting right now. Please try again.',
         variant: 'destructive',
       });
       
@@ -191,19 +170,6 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
           </div>
         )}
 
-        {messages.length === 0 && !localStorage.getItem(GROQ_API_KEY_STORAGE) && (
-          <Card className="p-4 bg-accent/20 border-accent/40">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">API Key Required</p>
-                <p className="text-xs text-muted-foreground">
-                  To start chatting with Moyo, please add your Groq API key in Settings (click the gear icon on the home screen).
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
       </main>
 
       {/* Input Area */}

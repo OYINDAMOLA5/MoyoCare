@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { MessageCircle, Wind, Menu, Sparkles, Settings } from 'lucide-react';
+import { MessageCircle, Wind, Menu, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import SettingsDialog from './SettingsDialog';
 
 interface HomeDashboardProps {
   onNavigateToChat: () => void;
@@ -27,8 +25,6 @@ export default function HomeDashboard({
   isPeriodMode,
   onTogglePeriodMode,
 }: HomeDashboardProps) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -53,9 +49,6 @@ export default function HomeDashboard({
             </h1>
             <p className="text-sm text-muted-foreground">How are you feeling today?</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-6 h-6" />
-          </Button>
         </div>
 
         {/* Cycle Context Toggle */}
@@ -130,12 +123,10 @@ export default function HomeDashboard({
         <Card className="p-4 bg-muted/50 border-border">
           <p className="text-sm text-muted-foreground text-center">
             <strong>MoyoCare-Her:</strong> Your safe space for mental and menstrual wellness. 
-            I'm here for you, sis. 💜
+          I'm here for you, sis. 💜
           </p>
         </Card>
       </main>
-
-      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }
