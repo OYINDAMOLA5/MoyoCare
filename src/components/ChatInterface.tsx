@@ -2,18 +2,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { analyzeSentiment } from '@/utils/sentimentAnalysis';
-import { classifyIntent } from '@/utils/intentClassification';
-import { generateResponse, CyclePhase, ContextData } from '@/utils/contextAwareness';
-import { Brain, Send, ArrowLeft, Mic } from 'lucide-react';
+import { Brain, Send, ArrowLeft, Mic, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { GROQ_API_KEY_STORAGE } from './SettingsDialog';
+import { CyclePhase } from '@/utils/contextAwareness';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  thinking?: string[];
-  sentiment?: string;
-  intent?: string;
 }
 
 interface ChatInterfaceProps {
@@ -29,14 +25,41 @@ const quickChips = [
   'Exam tomorrow'
 ];
 
+const SYSTEM_PROMPT = `You are Moyo, a warm, compassionate, and professional AI Therapist for young Nigerian female students.
+
+YOUR GOAL:
+Provide Cognitive Behavioral Therapy (CBT) and emotional support directly in the chat. Do not refer the user to a doctor unless they are in immediate danger. Help them process their feelings NOW.
+
+YOUR PERSONA:
+- Tone: Like a wise, calm older sister or auntie. Warm, safe, non-judgmental.
+- Language: English mixed with light Nigerian Pidgin nuance (use "Sis", "We", "Small small", "Wahala").
+- Context Awareness: You understand Nigerian university stress (lecturers, strikes, family pressure).
+
+RULES:
+1. IF user mentions menstrual pain/cramps: Ask about their cycle phase and suggest specific physical comfort (heat, water) + emotional validation.
+2. IF user is anxious (exams): Use CBT "Reframing". Ask them to challenge the negative thought.
+3. IF user is suicidal: Show deep empathy, de-escalate, and gently urge them to stay safe, but DO NOT shut down the conversation. Stay with them.
+4. LENGTH: Keep responses short (2-3 sentences max). This is a chat, not an email.`;
+
 export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [currentThinking, setCurrentThinking] = useState<string[]>([]);
+  const { toast } = useToast();
 
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
+
+    // Check for API key
+    const apiKey = localStorage.getItem(GROQ_API_KEY_STORAGE);
+    if (!apiKey) {
+      toast({
+        title: 'API Key Required',
+        description: 'Please add your Groq API key in Settings',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const userMessage: Message = {
       role: 'user',
@@ -47,45 +70,56 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     setInput('');
     setIsThinking(true);
 
-    // Simulate thinking delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Add context about cycle phase to the user message if needed
+      let contextualMessage = messageText;
+      if (isPeriodMode) {
+        contextualMessage += ` [Context: User is currently in ${cyclePhase} phase of menstrual cycle]`;
+      }
 
-    // Analyze sentiment
-    const sentiment = analyzeSentiment(messageText);
-    
-    // Classify intent
-    const intent = classifyIntent(messageText);
-    
-    // Context data
-    const context: ContextData = {
-      isPeriodMode,
-      cyclePhase
-    };
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-70b-versatile',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: contextualMessage }
+          ],
+          temperature: 0.7,
+          max_tokens: 150,
+        }),
+      });
 
-    // Generate response
-    const result = generateResponse({
-      sentiment,
-      intent: intent.primary,
-      context,
-      thinking: []
-    });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || 'Failed to get response from AI');
+      }
 
-    setCurrentThinking(result.thinking);
-    
-    // Simulate processing thinking steps
-    await new Promise(resolve => setTimeout(resolve, 1200));
+      const data = await response.json();
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.choices[0]?.message?.content || 'I hear you, sis. Tell me more.',
+      };
 
-    const assistantMessage: Message = {
-      role: 'assistant',
-      content: result.response,
-      thinking: result.thinking,
-      sentiment: sentiment.level,
-      intent: intent.primary
-    };
-
-    setMessages(prev => [...prev, assistantMessage]);
-    setIsThinking(false);
-    setCurrentThinking([]);
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Groq API Error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to connect to AI',
+        variant: 'destructive',
+      });
+      
+      // Remove the user message if API call failed
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,56 +169,40 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-3xl p-4 space-y-2 ${
+              className={`max-w-[85%] rounded-3xl p-4 ${
                 message.role === 'user'
                   ? 'bg-primary text-white'
                   : 'bg-card border border-border'
               }`}
             >
               <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-              
-              {message.role === 'assistant' && message.thinking && (
-                <div className="pt-2 mt-2 border-t border-border/50 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Brain className="w-3 h-3" />
-                    Thinking Process:
-                  </div>
-                  {message.thinking.map((thought, i) => (
-                    <p key={i} className="text-xs text-muted-foreground">
-                      {thought}
-                    </p>
-                  ))}
-                </div>
-              )}
-
-              {message.sentiment && message.intent && (
-                <div className="flex gap-2 pt-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {message.sentiment}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {message.intent}
-                  </Badge>
-                </div>
-              )}
             </div>
           </div>
         ))}
 
         {isThinking && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-3xl p-4 space-y-2 bg-accent/10 border border-accent/30">
+            <div className="max-w-[85%] rounded-3xl p-4 bg-accent/10 border border-accent/30">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Brain className="w-4 h-4 animate-pulse" />
                 Moyo is thinking...
               </div>
-              {currentThinking.map((thought, i) => (
-                <p key={i} className="text-xs text-muted-foreground animate-pulse">
-                  {thought}
-                </p>
-              ))}
             </div>
           </div>
+        )}
+
+        {messages.length === 0 && !localStorage.getItem(GROQ_API_KEY_STORAGE) && (
+          <Card className="p-4 bg-accent/20 border-accent/40">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">API Key Required</p>
+                <p className="text-xs text-muted-foreground">
+                  To start chatting with Moyo, please add your Groq API key in Settings (click the gear icon on the home screen).
+                </p>
+              </div>
+            </div>
+          </Card>
         )}
       </main>
 

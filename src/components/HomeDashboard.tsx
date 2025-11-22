@@ -1,8 +1,10 @@
-import { MessageCircle, Wind, Menu, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { MessageCircle, Wind, Menu, Sparkles, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import SettingsDialog from './SettingsDialog';
 
 interface HomeDashboardProps {
   onNavigateToChat: () => void;
@@ -25,6 +27,8 @@ export default function HomeDashboard({
   isPeriodMode,
   onTogglePeriodMode,
 }: HomeDashboardProps) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -49,8 +53,8 @@ export default function HomeDashboard({
             </h1>
             <p className="text-sm text-muted-foreground">How are you feeling today?</p>
           </div>
-          <Button variant="ghost" size="icon">
-            <Menu className="w-6 h-6" />
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-6 h-6" />
           </Button>
         </div>
 
@@ -130,6 +134,8 @@ export default function HomeDashboard({
           </p>
         </Card>
       </main>
+
+      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }
