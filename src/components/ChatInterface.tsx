@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, Send, ArrowLeft, Mic } from 'lucide-react';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  id?: string;
 }
 
 interface ChatInterfaceProps {
@@ -44,7 +45,66 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Load chat history on mount
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
+
+  const loadChatHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setMessages(data.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          id: msg.id
+        })));
+      }
+    } catch (error: any) {
+      console.error('Error loading chat history:', error);
+      toast({
+        title: 'Could not load chat history',
+        description: 'Starting a fresh conversation.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveMessage = async (role: 'user' | 'assistant', content: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          user_id: user.id,
+          role,
+          content
+        });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error saving message:', error);
+      toast({
+        title: 'Could not save message',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
@@ -54,9 +114,13 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
       content: messageText
     };
 
+    // Optimistically update UI
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsThinking(true);
+
+    // Save user message to database
+    await saveMessage('user', messageText);
 
     try {
       // Add context about cycle phase to the user message if needed
@@ -80,12 +144,16 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         throw new Error('Moyo is having trouble connecting right now. Please try again.');
       }
 
+      const aiResponse = data.choices[0]?.message?.content || 'I hear you, sis. Tell me more.';
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.choices[0]?.message?.content || 'I hear you, sis. Tell me more.',
+        content: aiResponse
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Save assistant message to database
+      await saveMessage('assistant', aiResponse);
     } catch (error) {
       console.error('Chat Error:', error);
       toast({
@@ -110,6 +178,17 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     setInput(chipText);
     await handleSendMessage(chipText);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Brain className="w-12 h-12 text-primary animate-pulse" />
+          <p className="text-lg text-muted-foreground">Loading your conversation...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

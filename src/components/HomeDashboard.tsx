@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { MessageCircle, Wind, Menu, Sparkles } from 'lucide-react';
+import { MessageCircle, Wind, Menu, Sparkles, LogOut } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface HomeDashboardProps {
   onNavigateToChat: () => void;
@@ -25,11 +28,24 @@ export default function HomeDashboard({
   isPeriodMode,
   onTogglePeriodMode,
 }: HomeDashboardProps) {
+  const { toast } = useToast();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: 'Error signing out',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -49,6 +65,14 @@ export default function HomeDashboard({
             </h1>
             <p className="text-sm text-muted-foreground">How are you feeling today?</p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* Cycle Context Toggle */}
