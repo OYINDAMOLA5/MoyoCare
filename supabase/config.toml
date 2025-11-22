@@ -1,1 +1,4 @@
 project_id = "nusjfnpzxtfkioltbcob"
+
+[functions.chat-with-moyo]
+verify_jwt = false
