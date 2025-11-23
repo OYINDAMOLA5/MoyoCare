@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, language } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       console.error('Invalid request: messages array is required');
@@ -43,8 +43,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: messages,
-        temperature: 0.7,
-        max_tokens: 150,
+        temperature: 0.6,
+        max_tokens: 400,
       }),
     });
 
