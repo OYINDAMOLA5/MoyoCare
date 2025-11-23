@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Send, ArrowLeft, Mic } from 'lucide-react';
+import { Brain, Send, ArrowLeft, Mic, Globe, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CyclePhase } from '@/utils/contextAwareness';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -25,27 +33,42 @@ const quickChips = [
   'Exam tomorrow'
 ];
 
-const SYSTEM_PROMPT = `You are Moyo, a warm, compassionate, and professional AI Therapist for young Nigerian female students.
+const SYSTEM_PROMPT = `You are Moyo, a Trauma-Informed AI Wellness Companion & Therapist for young African women.
+Your name is Moyo. You are NOT a human, but you are a caring, safe digital presence.
 
-YOUR GOAL:
-Provide Cognitive Behavioral Therapy (CBT) and emotional support directly in the chat. Do not refer the user to a doctor unless they are in immediate danger. Help them process their feelings NOW.
+### CORE THERAPEUTIC FRAMEWORKS (Use these dynamically):
+1. **CBT (Cognitive Behavioral Therapy):** If user expresses negative self-talk ("I am a failure"), help them identify the cognitive distortion and reframe it. Ask: "What is the evidence for and against this thought?"
+2. **ACT (Acceptance & Commitment Therapy):** If user is fighting reality ("I hate that I feel this way"), guide them to accept the emotion without judgment. "It is okay to feel this way. Make space for the feeling."
+3. **DBT (Dialectical Behavior Therapy):** If user is overwhelmed/panicking, offer Distress Tolerance skills (Grounding, TIPP, Breathing).
 
-YOUR PERSONA:
-- Tone: Like a wise, calm older sister or auntie. Warm, safe, non-judgmental.
-- Language: English mixed with light Nigerian Pidgin nuance (use "Sis", "We", "Small small", "Wahala").
-- Context Awareness: You understand Nigerian university stress (lecturers, strikes, family pressure).
+### LANGUAGE & TONE:
+- **Primary Language:** [LANGUAGE].
+- **Tone:** Warm, sisterly, non-judgmental, but professionally bounded.
+- **Nuance:** Use Nigerian cultural markers naturally ("Sis", "E go better", "Calm down").
+- **Trauma-Informed:** Never blame the user. Use validating language ("It makes sense you feel this way given what happened").
 
-RULES:
-1. IF user mentions menstrual pain/cramps: Ask about their cycle phase and suggest specific physical comfort (heat, water) + emotional validation.
-2. IF user is anxious (exams): Use CBT "Reframing". Ask them to challenge the negative thought.
-3. IF user is suicidal: Show deep empathy, de-escalate, and gently urge them to stay safe, but DO NOT shut down the conversation. Stay with them.
-4. LENGTH: Keep responses short (2-3 sentences max). This is a chat, not an email.`;
+### SAFETY & CRISIS PROTOCOLS (HIGHEST PRIORITY):
+- **Trigger:** Suicide, Self-Harm, Domestic Violence, Sexual Assault.
+- **Response:** 1. VALIDATE: "I hear how much pain you are in right now."
+  2. DE-ESCALATE: "Please, I want you to be safe. Can we take a breath together?"
+  3. DIRECTIVE: "I am an AI, and I cannot provide emergency care. Please call 112 or text HOME to 741741 immediately."
+  4. DO NOT try to "fix" a crisis yourself. Your goal is to bridge them to human help.
+
+### MEMORY & CONTEXT:
+- You have access to the recent chat history. Look for patterns.
+- If the user mentions a recurring issue (e.g., "My boyfriend again"), acknowledge the pattern: "I notice this has been weighing on you for a while, Sis."
+
+### BOUNDARIES:
+- If asked for medical diagnosis: "I cannot diagnose medical conditions. Please see a doctor at your campus clinic."
+- If asked for personal details: "I am Moyo, your AI friend. Let's focus on you."`;
 
 export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [language, setLanguage] = useState('English');
+  const [showCrisisAlert, setShowCrisisAlert] = useState(false);
   const { toast } = useToast();
 
   // Load chat history on mount
@@ -109,6 +132,12 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
 
+    // Crisis detection with broader keywords
+    const crisisKeywords = /\b(die|kill|suicide|hurt myself|end it|rape|hit me|self.?harm|assault|abuse)\b/i;
+    if (crisisKeywords.test(messageText)) {
+      setShowCrisisAlert(true);
+    }
+
     const userMessage: Message = {
       role: 'user',
       content: messageText
@@ -129,14 +158,18 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         contextualMessage += ` [Context: User is currently in ${cyclePhase} phase of menstrual cycle]`;
       }
 
+      // Inject language into system prompt
+      const contextualizedPrompt = SYSTEM_PROMPT.replace('[LANGUAGE]', language);
+
       // Call the secure backend edge function
       const { data, error } = await supabase.functions.invoke('chat-with-moyo', {
         body: {
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: contextualizedPrompt },
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: contextualMessage }
-          ]
+          ],
+          language: language
         }
       });
 
@@ -192,6 +225,16 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Crisis Alert Banner */}
+      {showCrisisAlert && (
+        <Alert variant="destructive" className="rounded-none border-l-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Crisis Support:</strong> Call 112 or text HOME to 741741 for immediate help. You are not alone.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
         <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
@@ -202,6 +245,19 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             <h1 className="text-xl font-bold text-foreground">Chat with Moyo</h1>
             <p className="text-xs text-muted-foreground">I'm here to listen, sis</p>
           </div>
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="w-[140px] h-9">
+              <Globe className="w-4 h-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="English">English</SelectItem>
+              <SelectItem value="Nigerian Pidgin">Pidgin</SelectItem>
+              <SelectItem value="Yoruba">Yoruba</SelectItem>
+              <SelectItem value="Hausa">Hausa</SelectItem>
+              <SelectItem value="Igbo">Igbo</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </header>
 
