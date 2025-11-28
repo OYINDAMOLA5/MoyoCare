@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      journal_entries: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          mood: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          mood?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          mood?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -34,6 +64,39 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          id: string
+          onboarded: boolean | null
+          preferred_language: string | null
+          theme_preference: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          onboarded?: boolean | null
+          preferred_language?: string | null
+          theme_preference?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          onboarded?: boolean | null
+          preferred_language?: string | null
+          theme_preference?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

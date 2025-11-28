@@ -1,11 +1,7 @@
-import { useState } from 'react';
-import { MessageCircle, Wind, Menu, Sparkles, LogOut } from 'lucide-react';
+import { MessageCircle, Wind, Sparkles, BookOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface HomeDashboardProps {
   onNavigateToChat: () => void;
@@ -28,8 +24,6 @@ export default function HomeDashboard({
   isPeriodMode,
   onTogglePeriodMode,
 }: HomeDashboardProps) {
-  const { toast } = useToast();
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -37,19 +31,8 @@ export default function HomeDashboard({
     return 'Good Evening';
   };
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: 'Error signing out',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-4">
       {/* Header */}
       <header 
         className={`sticky top-0 z-10 transition-colors duration-300 ${
@@ -58,21 +41,13 @@ export default function HomeDashboard({
             : 'bg-card'
         } border-b border-border shadow-sm`}
       >
-        <div className="max-w-4xl mx-auto p-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto p-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               {getGreeting()}, Sis 👋
             </h1>
             <p className="text-sm text-muted-foreground">How are you feeling today?</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
         </div>
 
         {/* Cycle Context Toggle */}
@@ -105,23 +80,23 @@ export default function HomeDashboard({
         {/* Quick Actions */}
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-3">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             <Card 
-              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-primary to-primary/80 text-white"
+              className="p-4 md:p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-primary to-primary/80 text-white active:scale-95"
               onClick={onNavigateToChat}
             >
-              <MessageCircle className="w-10 h-10 mb-3" />
-              <h3 className="font-bold text-lg">Chat with Moyo</h3>
-              <p className="text-sm text-white/90 mt-1">I'm here to listen</p>
+              <MessageCircle className="w-8 h-8 md:w-10 md:h-10 mb-2 md:mb-3" />
+              <h3 className="font-bold text-base md:text-lg">Chat with Moyo</h3>
+              <p className="text-xs md:text-sm text-white/90 mt-1">I'm here to listen</p>
             </Card>
 
             <Card 
-              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-secondary to-secondary/80 text-white"
+              className="p-4 md:p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-secondary to-secondary/80 text-white active:scale-95"
               onClick={onOpenBreathing}
             >
-              <Wind className="w-10 h-10 mb-3" />
-              <h3 className="font-bold text-lg">Quick Breathe</h3>
-              <p className="text-sm text-white/90 mt-1">Calm your mind</p>
+              <Wind className="w-8 h-8 md:w-10 md:h-10 mb-2 md:mb-3" />
+              <h3 className="font-bold text-base md:text-lg">Quick Breathe</h3>
+              <p className="text-xs md:text-sm text-white/90 mt-1">Calm your mind</p>
             </Card>
           </div>
         </section>
@@ -129,11 +104,11 @@ export default function HomeDashboard({
         {/* Daily Wisdom */}
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-3">Daily Wisdom</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
             {wisdomTips.map((tip, index) => (
               <Card 
                 key={index}
-                className="flex-shrink-0 w-64 p-4 cursor-pointer hover:shadow-lg transition-all"
+                className="flex-shrink-0 w-56 md:w-64 p-4 cursor-pointer hover:shadow-lg transition-all active:scale-95"
               >
                 <div className="text-3xl mb-2">{tip.icon}</div>
                 <h3 className="font-semibold text-foreground mb-1">{tip.title}</h3>
@@ -147,7 +122,7 @@ export default function HomeDashboard({
         <Card className="p-4 bg-muted/50 border-border">
           <p className="text-sm text-muted-foreground text-center">
             <strong>MoyoCare-Her:</strong> Your safe space for mental and menstrual wellness. 
-          I'm here for you, sis. 💜
+            I'm here for you, sis. 💜
           </p>
         </Card>
       </main>

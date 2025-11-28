@@ -5,36 +5,67 @@ import SplashScreen from '../components/SplashScreen';
 import HomeDashboard from '../components/HomeDashboard';
 import ChatInterface from '../components/ChatInterface';
 import BreathingTool from '../components/BreathingTool';
+import BottomNav, { NavTab } from '../components/BottomNav';
+import Journal from '../components/Journal';
+import Profile from '../components/Profile';
+import Onboarding from '../components/Onboarding';
 import Auth from './Auth';
+import DesktopNav from '../components/DesktopNav';
 import { CyclePhase } from '@/utils/contextAwareness';
 
-type View = 'splash' | 'home' | 'chat';
-
 export default function Index() {
-  const [currentView, setCurrentView] = useState<View>('splash');
+  const [showSplash, setShowSplash] = useState(true);
+  const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPeriodMode, setIsPeriodMode] = useState(false);
   const [cyclePhase, setCyclePhase] = useState<CyclePhase>('follicular');
   const [isBreathingOpen, setIsBreathingOpen] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
 
   const handleSplashComplete = () => {
-    setCurrentView('home');
+    setShowSplash(false);
   };
 
   const handleNavigateToChat = () => {
-    setCurrentView('chat');
+    setActiveTab('chat');
   };
 
   const handleBackToHome = () => {
-    setCurrentView('home');
+    setActiveTab('home');
   };
 
   const handleTogglePeriodMode = (checked: boolean) => {
     setIsPeriodMode(checked);
     if (checked && cyclePhase === 'follicular') {
       setCyclePhase('menstrual');
+    }
+  };
+
+  const checkOnboardingStatus = async (userId: string) => {
+    setCheckingOnboarding(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('onboarded')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking onboarding:', error);
+        setNeedsOnboarding(false);
+        return;
+      }
+
+      // If no profile exists or not onboarded, show onboarding
+      setNeedsOnboarding(!data || !data.onboarded);
+    } catch (error) {
+      console.error('Error checking onboarding:', error);
+      setNeedsOnboarding(false);
+    } finally {
+      setCheckingOnboarding(false);
     }
   };
 
@@ -45,6 +76,13 @@ export default function Index() {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Check onboarding status after auth state changes
+        if (session?.user) {
+          setTimeout(() => {
+            checkOnboardingStatus(session.user.id);
+          }, 0);
+        }
       }
     );
 
@@ -53,6 +91,10 @@ export default function Index() {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      if (session?.user) {
+        checkOnboardingStatus(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -70,33 +112,66 @@ export default function Index() {
     return <Auth />;
   }
 
-  return (
-    <>
-      {currentView === 'splash' && (
-        <SplashScreen onComplete={handleSplashComplete} />
-      )}
-      
-      {currentView === 'home' && (
-        <HomeDashboard
-          onNavigateToChat={handleNavigateToChat}
-          onOpenBreathing={() => setIsBreathingOpen(true)}
-          isPeriodMode={isPeriodMode}
-          onTogglePeriodMode={handleTogglePeriodMode}
-        />
-      )}
-      
-      {currentView === 'chat' && (
-        <ChatInterface
-          onBack={handleBackToHome}
-          isPeriodMode={isPeriodMode}
-          cyclePhase={cyclePhase}
-        />
-      )}
+  // Show onboarding for new users
+  if (needsOnboarding && !checkingOnboarding) {
+    return (
+      <Onboarding
+        userId={user.id}
+        onComplete={() => setNeedsOnboarding(false)}
+      />
+    );
+  }
 
+  // Show splash screen
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return (
+          <HomeDashboard
+            onNavigateToChat={handleNavigateToChat}
+            onOpenBreathing={() => setIsBreathingOpen(true)}
+            isPeriodMode={isPeriodMode}
+            onTogglePeriodMode={handleTogglePeriodMode}
+          />
+        );
+      case 'chat':
+        return (
+          <ChatInterface
+            onBack={handleBackToHome}
+            isPeriodMode={isPeriodMode}
+            cyclePhase={cyclePhase}
+          />
+        );
+      case 'journal':
+        return <Journal />;
+      case 'profile':
+        return <Profile />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen">
+      {/* Desktop Navigation */}
+      <DesktopNav activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      {/* Main Content - offset for desktop nav */}
+      <div className="md:ml-20 lg:ml-64 pb-16 md:pb-0">
+        {renderContent()}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      
       <BreathingTool
         isOpen={isBreathingOpen}
         onClose={() => setIsBreathingOpen(false)}
       />
-    </>
+    </div>
   );
 }
