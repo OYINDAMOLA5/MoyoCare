@@ -308,7 +308,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
       </main>
 
       {/* Input Area */}
-      <footer className="sticky bottom-0 bg-card border-t border-border shadow-lg">
+      <footer className="sticky bottom-16 md:bottom-0 bg-card border-t border-border shadow-lg">
         <div className="max-w-4xl mx-auto p-4 space-y-3">
           {/* Quick Chips */}
           {messages.length === 0 && (
