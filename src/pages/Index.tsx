@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import SplashScreen from '../components/SplashScreen';
 import HomeDashboard from '../components/HomeDashboard';
 import ChatInterface from '../components/ChatInterface';
+import ChatHistory from '../components/ChatHistory';
 import BreathingTool from '../components/BreathingTool';
 import BottomNav, { NavTab } from '../components/BottomNav';
 import Journal from '../components/Journal';
@@ -24,17 +25,39 @@ export default function Index() {
   const [isBreathingOpen, setIsBreathingOpen] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
+  
+  // Chat state
+  const [showChatHistory, setShowChatHistory] = useState(true);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   const handleSplashComplete = () => {
     setShowSplash(false);
   };
 
   const handleNavigateToChat = () => {
+    setShowChatHistory(true);
+    setSelectedConversationId(null);
     setActiveTab('chat');
   };
 
   const handleBackToHome = () => {
     setActiveTab('home');
+    setShowChatHistory(true);
+    setSelectedConversationId(null);
+  };
+
+  const handleSelectConversation = (conversationId: string | null) => {
+    setSelectedConversationId(conversationId);
+    setShowChatHistory(false);
+  };
+
+  const handleBackToChatHistory = () => {
+    setShowChatHistory(true);
+    setSelectedConversationId(null);
+  };
+
+  const handleConversationCreated = (id: string) => {
+    setSelectedConversationId(id);
   };
 
   const handleTogglePeriodMode = (checked: boolean) => {
@@ -68,6 +91,14 @@ export default function Index() {
       setCheckingOnboarding(false);
     }
   };
+
+  // Reset chat state when tab changes away from chat
+  useEffect(() => {
+    if (activeTab !== 'chat') {
+      setShowChatHistory(true);
+      setSelectedConversationId(null);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -139,11 +170,21 @@ export default function Index() {
           />
         );
       case 'chat':
+        if (showChatHistory) {
+          return (
+            <ChatHistory
+              onSelectConversation={handleSelectConversation}
+              onBack={handleBackToHome}
+            />
+          );
+        }
         return (
           <ChatInterface
-            onBack={handleBackToHome}
+            onBack={handleBackToChatHistory}
             isPeriodMode={isPeriodMode}
             cyclePhase={cyclePhase}
+            conversationId={selectedConversationId}
+            onConversationCreated={handleConversationCreated}
           />
         );
       case 'journal':
