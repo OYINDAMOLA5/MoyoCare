@@ -48,9 +48,9 @@ export default function BreathingTool({ isOpen, onClose }: BreathingToolProps) {
   };
 
   const phaseSubtext = {
-    inhale: 'Simi... Fill your lungs',
-    hold: 'Mu... Hold gently',
-    exhale: 'Fẹ... Let it go',
+    inhale: 'Fill your lungs slowly',
+    hold: 'Hold gently',
+    exhale: 'Release slowly',
   };
 
   const circleScale = {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, Send, ArrowLeft, Mic, Globe, AlertTriangle } from 'lucide-react';
@@ -24,6 +24,8 @@ interface ChatInterfaceProps {
   onBack: () => void;
   isPeriodMode: boolean;
   cyclePhase: CyclePhase;
+  conversationId: string | null;
+  onConversationCreated: (id: string) => void;
 }
 
 const quickChips = [
@@ -62,27 +64,46 @@ Your name is Moyo. You are NOT a human, but you are a caring, safe digital prese
 - If asked for medical diagnosis: "I cannot diagnose medical conditions. Please see a doctor at your campus clinic."
 - If asked for personal details: "I am Moyo, your AI friend. Let's focus on you."`;
 
-export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: ChatInterfaceProps) {
+export default function ChatInterface({ 
+  onBack, 
+  isPeriodMode, 
+  cyclePhase, 
+  conversationId,
+  onConversationCreated 
+}: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState('English');
   const [showCrisisAlert, setShowCrisisAlert] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(conversationId);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Load chat history on mount
+  // Scroll to bottom when messages change
   useEffect(() => {
-    loadChatHistory();
-  }, []);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const loadChatHistory = async () => {
+  // Load chat history when conversation changes
+  useEffect(() => {
+    if (conversationId) {
+      loadChatHistory(conversationId);
+    } else {
+      setMessages([]);
+      setLoading(false);
+    }
+  }, [conversationId]);
+
+  const loadChatHistory = async (convId: string) => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
@@ -105,7 +126,40 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     }
   };
 
-  const saveMessage = async (role: 'user' | 'assistant', content: string) => {
+  const createConversation = async (firstMessage: string): Promise<string | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Generate title from first message (first 50 chars)
+      const title = firstMessage.length > 50 
+        ? firstMessage.substring(0, 47) + '...' 
+        : firstMessage;
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          user_id: user.id,
+          title
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      return data.id;
+    } catch (error: any) {
+      console.error('Error creating conversation:', error);
+      toast({
+        title: 'Could not create conversation',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  const saveMessage = async (role: 'user' | 'assistant', content: string, convId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -115,7 +169,8 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         .insert({
           user_id: user.id,
           role,
-          content
+          content,
+          conversation_id: convId
         });
 
       if (error) throw error;
@@ -148,8 +203,21 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     setInput('');
     setIsThinking(true);
 
+    // Create conversation if this is a new chat
+    let convId = currentConversationId;
+    if (!convId) {
+      convId = await createConversation(messageText);
+      if (!convId) {
+        setIsThinking(false);
+        setMessages(prev => prev.slice(0, -1));
+        return;
+      }
+      setCurrentConversationId(convId);
+      onConversationCreated(convId);
+    }
+
     // Save user message to database
-    await saveMessage('user', messageText);
+    await saveMessage('user', messageText, convId);
 
     try {
       // Add context about cycle phase to the user message if needed
@@ -186,7 +254,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
       setMessages(prev => [...prev, assistantMessage]);
 
       // Save assistant message to database
-      await saveMessage('assistant', aiResponse);
+      await saveMessage('assistant', aiResponse, convId);
     } catch (error) {
       console.error('Chat Error:', error);
       toast({
@@ -285,7 +353,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             <div
               className={`max-w-[85%] rounded-3xl p-4 ${
                 message.role === 'user'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border'
               }`}
             >
@@ -304,7 +372,8 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             </div>
           </div>
         )}
-
+        
+        <div ref={messagesEndRef} />
       </main>
 
       {/* Input Area */}
