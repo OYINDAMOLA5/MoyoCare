@@ -14,8 +14,13 @@ import Auth from './Auth';
 import DesktopNav from '../components/DesktopNav';
 import { CyclePhase } from '@/utils/contextAwareness';
 
+const SPLASH_SHOWN_KEY = 'moyo_splash_shown';
+
 export default function Index() {
-  const [showSplash, setShowSplash] = useState(true);
+  // Check if splash was already shown in this session
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem(SPLASH_SHOWN_KEY);
+  });
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -24,13 +29,15 @@ export default function Index() {
   const [cyclePhase, setCyclePhase] = useState<CyclePhase>('follicular');
   const [isBreathingOpen, setIsBreathingOpen] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [existingDisplayName, setExistingDisplayName] = useState<string | undefined>();
   
   // Chat state
   const [showChatHistory, setShowChatHistory] = useState(true);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   const handleSplashComplete = () => {
+    sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
     setShowSplash(false);
   };
 
@@ -72,18 +79,26 @@ export default function Index() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('onboarded')
+        .select('onboarded, display_name')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error checking onboarding:', error);
         setNeedsOnboarding(false);
         return;
       }
 
       // If no profile exists or not onboarded, show onboarding
-      setNeedsOnboarding(!data || !data.onboarded);
+      if (!data || !data.onboarded) {
+        setNeedsOnboarding(true);
+        // If profile exists but not onboarded, pre-fill name
+        if (data?.display_name) {
+          setExistingDisplayName(data.display_name);
+        }
+      } else {
+        setNeedsOnboarding(false);
+      }
     } catch (error) {
       console.error('Error checking onboarding:', error);
       setNeedsOnboarding(false);
@@ -113,6 +128,8 @@ export default function Index() {
           setTimeout(() => {
             checkOnboardingStatus(session.user.id);
           }, 0);
+        } else {
+          setCheckingOnboarding(false);
         }
       }
     );
@@ -125,13 +142,15 @@ export default function Index() {
       
       if (session?.user) {
         checkOnboardingStatus(session.user.id);
+      } else {
+        setCheckingOnboarding(false);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  if (loading || checkingOnboarding) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-2xl text-primary">Loading...</div>
@@ -143,17 +162,18 @@ export default function Index() {
     return <Auth />;
   }
 
-  // Show onboarding for new users
-  if (needsOnboarding && !checkingOnboarding) {
+  // Show onboarding for new users (after loading is complete)
+  if (needsOnboarding) {
     return (
       <Onboarding
         userId={user.id}
+        existingName={existingDisplayName}
         onComplete={() => setNeedsOnboarding(false)}
       />
     );
   }
 
-  // Show splash screen
+  // Show splash screen only once per session
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
