@@ -5,6 +5,16 @@ import { MessageSquarePlus, MessageCircle, Trash2, ArrowLeft } from 'lucide-reac
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Conversation {
   id: string;
@@ -21,6 +31,8 @@ interface ChatHistoryProps {
 export default function ChatHistory({ onSelectConversation, onBack }: ChatHistoryProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,18 +64,24 @@ export default function ChatHistory({ onSelectConversation, onBack }: ChatHistor
     onSelectConversation(null); // null means new conversation
   };
 
-  const handleDeleteConversation = async (e: React.MouseEvent, conversationId: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, conversationId: string) => {
     e.stopPropagation();
+    setConversationToDelete(conversationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!conversationToDelete) return;
     
     try {
       const { error } = await supabase
         .from('conversations')
         .delete()
-        .eq('id', conversationId);
+        .eq('id', conversationToDelete);
 
       if (error) throw error;
 
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
+      setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
       toast({
         title: 'Conversation deleted',
         description: 'The conversation has been removed.',
@@ -75,6 +93,9 @@ export default function ChatHistory({ onSelectConversation, onBack }: ChatHistor
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setConversationToDelete(null);
     }
   };
 
@@ -91,6 +112,27 @@ export default function ChatHistory({ onSelectConversation, onBack }: ChatHistor
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this conversation and all its messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
         <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
@@ -152,8 +194,8 @@ export default function ChatHistory({ onSelectConversation, onBack }: ChatHistor
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={(e) => handleDeleteConversation(e, conversation.id)}
+                    className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => handleDeleteClick(e, conversation.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
