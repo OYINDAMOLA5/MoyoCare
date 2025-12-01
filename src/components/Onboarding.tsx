@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Heart, Brain, Shield, ChevronRight } from 'lucide-react';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface OnboardingProps {
   userId: string;
+  existingName?: string;
   onComplete: () => void;
 }
 
@@ -49,12 +50,19 @@ const languages = [
   { value: 'Igbo', label: 'Igbo' },
 ];
 
-export default function Onboarding({ userId, onComplete }: OnboardingProps) {
+export default function Onboarding({ userId, existingName, onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(existingName || '');
   const [language, setLanguage] = useState('English');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Pre-fill name if provided
+  useEffect(() => {
+    if (existingName) {
+      setName(existingName);
+    }
+  }, [existingName]);
 
   const isLastSlide = step === slides.length;
   const isSetupStep = step === slides.length;
@@ -76,14 +84,17 @@ export default function Onboarding({ userId, onComplete }: OnboardingProps) {
 
     setLoading(true);
     try {
+      // Use upsert to handle both new profiles and updates
       const { error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          user_id: userId,
           display_name: name.trim(),
           preferred_language: language,
           onboarded: true,
-        })
-        .eq('user_id', userId);
+        }, {
+          onConflict: 'user_id'
+        });
 
       if (error) throw error;
       onComplete();
